@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>Prayer Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --bg:#0d1117;--panel:#161b22;--line:#30363d;--text:#e6edf3;--mute:#8b949e;
+  --full:#216e39;--five:#39d353;--part:#e3a008;--miss:#da3633;--none:#161b22;--accent:#58a6ff;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  display:flex;justify-content:center}
+button{font:inherit;color:inherit;cursor:pointer}
+.app{width:100%;max-width:480px;padding:14px 14px 40px}
+h1{font-size:20px;margin:4px 0 14px;font-weight:700;letter-spacing:.2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#0d1117;font-size:18px}
+.nav:disabled{opacity:.3}
+.date{text-align:center;flex:1}
+.date b{display:block;font-size:17px}
+.date span{color:var(--mute);font-size:13px}
+.status{display:flex;align-items:center;gap:10px;margin:12px 0 4px}
+.bar{flex:1;height:8px;background:#0d1117;border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--mute);transition:width .25s,background .25s}
+.badge{font-size:13px;font-weight:600;white-space:nowrap}
+.sub{color:var(--mute);font-size:13px;margin:0 0 6px}
+.sect{color:var(--mute);font-size:13px;margin:14px 0 6px;font-weight:600}
+.row{display:flex;align-items:center;width:100%;min-height:52px;padding:8px 12px;margin-bottom:8px;
+  border:1px solid var(--line);border-radius:10px;background:#0d1117;text-align:left;gap:12px}
+.row .box{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;flex:none;font-size:15px;color:#04210d}
+.row .name{flex:1;font-size:16px}
+.row.on{border-color:var(--five)}
+.row.on .box{background:var(--five);border-color:var(--five)}
+.row.on .name{color:var(--text)}
+.wrap{display:flex;gap:8px;margin-bottom:8px}
+.wrap .row{margin:0;flex:1}
+.del{width:52px;border:1px solid var(--line);border-radius:10px;background:#0d1117;color:var(--mute);font-size:16px}
+.add{width:100%;min-height:48px;border:1px dashed var(--mute);border-radius:10px;background:transparent;color:var(--accent);font-weight:600;margin-top:4px}
+.addp{display:none;margin-top:8px}
+.addp.open{display:block}
+.inp{display:flex;gap:8px}
+.inp input{flex:1;min-width:0;height:46px;border-radius:10px;border:1px solid var(--line);background:#0d1117;color:var(--text);padding:0 12px;font:inherit}
+.inp input:focus,.add:focus-visible,.row:focus-visible,.cell:focus-visible,.nav:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.inp button{height:46px;padding:0 16px;border-radius:10px;border:0;background:var(--accent);color:#04101f;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{padding:6px 12px;border-radius:16px;border:1px solid var(--line);background:#0d1117;color:var(--mute);font-size:14px}
+.missbtn{width:100%;min-height:44px;margin-top:10px;border:1px solid var(--miss);border-radius:10px;background:transparent;color:#ff7b72}
+.stats{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.stats h2{font-size:16px;margin:0}
+.stats span{color:var(--mute);font-size:13px}
+.hmscroll{overflow-x:auto;margin:0 -4px;padding:0 4px 8px;-webkit-overflow-scrolling:touch}
+.hm{display:grid;gap:4px;align-items:center;width:max-content}
+.ml{font-size:11px;color:var(--mute);white-space:nowrap;line-height:1;align-self:end;padding-bottom:2px}
+.dl{font-size:11px;color:var(--mute);line-height:34px;height:34px;position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);padding-right:4px;margin-right:-1px}
+.cell{width:34px;height:34px;padding:0;border:1px solid rgba(240,246,252,.06);border-radius:6px;background:var(--none);color:var(--mute);font-size:12px;font-weight:600}
+.cell:disabled{cursor:default}
+.lv-miss{background:var(--miss);color:#fff}.lv-part{background:var(--part);color:#1a1200}.lv-five{background:var(--five);color:#04210d}.lv-full{background:var(--full);color:#fff}
+.cell:disabled{opacity:.55}
+.cell.today{box-shadow:0 0 0 1.5px var(--accent)}
+.cell.sel{box-shadow:0 0 0 2px #fff;position:relative;z-index:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px;font-size:12px;color:var(--mute)}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:3px;border:1px solid rgba(240,246,252,.08)}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Prayer Tracker</h1>
+
+  <section class="card" id="day">
+    <div class="top">
+      <button class="nav" id="prev" aria-label="Previous day">&#8249;</button>
+      <div class="date"><b id="dTitle"></b><span id="dSub"></span></div>
+      <button class="nav" id="next" aria-label="Next day">&#8250;</button>
+    </div>
+    <div class="status">
+      <div class="bar"><i id="barFill"></i></div>
+      <span class="badge" id="badge"></span>
+    </div>
+    <p class="sub" id="detail"></p>
+
+    <div class="sect">Daily prayers</div>
+    <div id="mand"></div>
+
+    <div class="sect">Night prayer</div>
+    <div id="night"></div>
+
+    <div class="sect">Special prayers</div>
+    <div id="custom"></div>
+    <button class="add" id="addBtn">+ Add Special Prayer</button>
+    <div class="addp" id="addPanel">
+      <div class="inp">
+        <input id="addInput" maxlength="30" placeholder="Prayer name" autocomplete="off">
+        <button id="addGo">Add</button>
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <button class="missbtn" id="missBtn" hidden>Log this day as missed</button>
+  </section>
+
+  <section class="card">
+    <div class="stats"><h2>Last 6 months</h2><span id="streak"></span></div>
+    <div class="hmscroll" id="hmScroll"><div class="hm" id="hm" role="grid" aria-label="Prayer history, last 180 days"></div></div>
+    <p class="sub" style="margin:6px 0 0">Swipe sideways for older weeks. Tap any date to view or edit it.</p>
+    <div class="legend">
+      <span><i style="background:var(--full)"></i>All + Tahajjud</span>
+      <span><i style="background:var(--five)"></i>All 5</span>
+      <span><i style="background:var(--part)"></i>Partial</span>
+      <span><i style="background:var(--miss)"></i>None</span>
+      <span><i style="background:var(--none)"></i>No data</span>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const KEY='prayerTracker.v1', DAYS=180;
+const MAND=[['fajr','Fajr'],['dhuhr','Dhuhr'],['asr','Asr'],['maghrib','Maghrib'],['isha','Isha']];
+const SUGGEST=['Duha','Ishraq','Taraweeh','Witr','Qiyam'];
+const LABEL={none:'Not logged',miss:'Missed',part:'Partial',five:'All 5 done',full:'Complete'};
+const COLOR={none:'#8b949e',miss:'#da3633',part:'#e3a008',five:'#39d353',full:'#2ea043'};
+
+let fallback={};
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return fallback}}
+let data=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){fallback=data}}
+
+const pad=n=>String(n).padStart(2,'0');
+const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const fromKey=k=>{const a=k.split('-').map(Number);return new Date(a[0],a[1]-1,a[2])};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const $=id=>document.getElementById(id);
+
+let todayKey=keyOf(new Date());
+let sel=todayKey;
+
+function level(e){
+  if(!e) return 'none';
+  const m=MAND.filter(x=>e.p[x[0]]).length, t=!!e.p.tahajjud;
+  const c=e.c||[], cd=c.filter(x=>x.d).length;
+  if(m===5&&t&&cd===c.length) return 'full';
+  if(m===5) return 'five';
+  return (m+(t?1:0)+cd)>0?'part':'miss';
+}
+function entry(k,create){
+  if(!data[k]&&create) data[k]={p:{},c:[]};
+  return data[k];
+}
+function isFri(k){return fromKey(k).getDay()===5}
+
+/* ---------- day panel ---------- */
+function rowBtn(label,on,onTap){
+  const b=document.createElement('button');
+  b.className='row'+(on?' on':'');b.setAttribute('aria-pressed',on);
+  b.innerHTML='<span class="box">'+(on?'&#10003;':'')+'</span><span class="name"></span>';
+  b.querySelector('.name').textContent=label;
+  b.onclick=onTap;return b;
+}
+function renderDay(){
+  const e=entry(sel), p=e?e.p:{};
+  const d=fromKey(sel), isToday=sel===todayKey;
+  $('dTitle').textContent=isToday?'Today':d.toLocaleDateString(undefined,{weekday:'long'});
+  $('dSub').textContent=d.toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'});
+  $('next').disabled=sel>=todayKey;
+  $('prev').disabled=sel<=keyOf(addDays(fromKey(todayKey),-(DAYS-1)));
+
+  const mand=$('mand');mand.innerHTML='';
+  MAND.forEach(x=>{
+    const name=(x[0]==='dhuhr'&&isFri(sel))?'Jummah':x[1];
+    mand.appendChild(rowBtn(name,!!p[x[0]],()=>{const en=entry(sel,true);en.p[x[0]]=!en.p[x[0]];commit()}));
+  });
+  const night=$('night');night.innerHTML='';
+  night.appendChild(rowBtn('Tahajjud',!!p.tahajjud,()=>{const en=entry(sel,true);en.p.tahajjud=!en.p.tahajjud;commit()}));
+
+  const cu=$('custom');cu.innerHTML='';
+  ((e&&e.c)||[]).forEach(c=>{
+    const w=document.createElement('div');w.className='wrap';
+    w.appendChild(rowBtn(c.n,c.d,()=>{c.d=!c.d;commit()}));
+    const x=document.createElement('button');x.className='del';x.textContent='\u2715';x.setAttribute('aria-label','Remove '+c.n);
+    x.onclick=()=>{const en=entry(sel);en.c=en.c.filter(y=>y.id!==c.id);commit()};
+    w.appendChild(x);cu.appendChild(w);
+  });
+
+  const lv=level(e), m=MAND.filter(x=>p[x[0]]).length, extra=((e&&e.c)||[]).filter(c=>c.d).length;
+  $('badge').textContent=LABEL[lv];$('badge').style.color=COLOR[lv];
+  const f=$('barFill');f.style.width=(m/5*100)+'%';f.style.background=COLOR[lv];
+  $('detail').textContent=m+'/5 daily \u00b7 Tahajjud '+(p.tahajjud?'done':'not yet')+(extra?' \u00b7 '+extra+' special done':'');
+  $('missBtn').hidden=!(!e&&sel<todayKey);
+}
+function commit(){save();renderDay();renderHeat()}
+
+/* ---------- add special prayer ---------- */
+function addCustom(name){
+  name=(name||'').trim();if(!name)return;
+  const en=entry(sel,true);
+  if(en.c.some(c=>c.n.toLowerCase()===name.toLowerCase())) return;
+  en.c.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),n:name,d:false});
+  $('addInput').value='';commit();
+}
+$('addBtn').onclick=()=>{
+  const open=$('addPanel').classList.toggle('open');
+  if(open)$('addInput').focus();
+};
+$('addGo').onclick=()=>addCustom($('addInput').value);
+$('addInput').addEventListener('keydown',ev=>{if(ev.key==='Enter')addCustom(ev.target.value)});
+SUGGEST.forEach(s=>{const b=document.createElement('button');b.textContent=s;b.onclick=()=>addCustom(s);$('chips').appendChild(b)});
+$('missBtn').onclick=()=>{entry(sel,true);commit()};
+
+/* ---------- day navigation ---------- */
+$('prev').onclick=()=>{sel=keyOf(addDays(fromKey(sel),-1));renderDay();renderHeat()};
+$('next').onclick=()=>{if(sel<todayKey){sel=keyOf(addDays(fromKey(sel),1));renderDay();renderHeat()}};
+
+/* ---------- heatmap ---------- */
+function renderHeat(){
+  const hm=$('hm'), sc=$('hmScroll'), keep=sc.scrollLeft, first=!sc.dataset.init;hm.innerHTML='';
+  const t=fromKey(todayKey), start=addDays(t,-(DAYS-1)), off=start.getDay();
+  const cols=Math.ceil((off+DAYS)/7);
+  hm.style.gridTemplateColumns='34px repeat('+cols+',34px)';
+
+  // month labels
+  const labels=[];let prev=-1;
+  for(let c=0;c<cols;c++){
+    const d=addDays(start,Math.max(0,c*7-off));
+    if(d.getMonth()!==prev){labels.push({c:c,t:d.toLocaleDateString(undefined,{month:'short'})});prev=d.getMonth()}
+  }
+  labels.forEach((l,i)=>{
+    const s=document.createElement('div');s.className='ml';s.textContent=l.t;
+    s.style.gridRow=1;s.style.gridColumn=l.c+2;hm.appendChild(s);
+  });
+  // weekday labels (Sunday-first rows)
+  [[0,'Sun'],[1,'Mon'],[2,'Tue'],[3,'Wed'],[4,'Thu'],[5,'Fri'],[6,'Sat']].forEach(a=>{
+    const s=document.createElement('div');s.className='dl';s.textContent=a[1];
+    s.style.gridRow=a[0]+2;s.style.gridColumn=1;hm.appendChild(s);
+  });
+  // cells
+  for(let i=off;i<cols*7;i++){
+    const idx=i-off, c=Math.floor(i/7), r=i%7;
+    const d=addDays(start,idx), k=keyOf(d), future=k>todayKey;
+    const b=document.createElement('button');
+    const lv=future?'none':level(data[k]);
+    b.className='cell lv-'+lv+(k===todayKey?' today':'')+(k===sel?' sel':'');
+    b.style.gridRow=r+2;b.style.gridColumn=c+2;b.textContent=d.getDate();if(d.getDate()===1)b.style.fontWeight='800';
+    b.setAttribute('aria-label',d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'})+': '+(future?'upcoming':LABEL[lv]));
+    if(future)b.disabled=true;
+    else b.onclick=()=>{sel=k;renderDay();renderHeat();$('day').scrollIntoView({behavior:'smooth',block:'start'})};
+    hm.appendChild(b);
+  }
+  sc.dataset.init=1;sc.scrollLeft=first?sc.scrollWidth:keep;
+  // streak of days with all 5 prayers
+  let s=0;
+  for(let i=0;i<DAYS;i++){
+    const e=data[keyOf(addDays(t,-i))];
+    const ok=e&&MAND.every(x=>e.p[x[0]]);
+    if(i===0&&!ok)continue;
+    if(!ok)break;s++;
+  }
+  $('streak').textContent=s?s+(s===1?' day':' days')+' streak':'';
+}
+
+/* ---------- daily rollover ---------- */
+function tick(){
+  const nk=keyOf(new Date());
+  if(nk!==todayKey){
+    const wasToday=sel===todayKey;
+    todayKey=nk;if(wasToday)sel=nk;
+    renderDay();renderHeat();
+  }
+}
+setInterval(tick,30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){data=load();tick();renderDay();renderHeat()}});
+window.addEventListener('focus',tick);
+
+renderDay();renderHeat();
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
